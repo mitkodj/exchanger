@@ -7,7 +7,6 @@ var path = require('path')
 
 exports.client = null;
 
-
 exports.initialize = function(settings, callback) {
   var soap = require('soap');
   // TODO: Handle different locations of where the asmx lives.
@@ -27,7 +26,7 @@ exports.initialize = function(settings, callback) {
 
     return callback(null);
   }, endpoint);
-}
+};
 
 
 exports.getEmails = function(folderName, limit, callback) {
@@ -120,7 +119,7 @@ exports.getEmails = function(folderName, limit, callback) {
       callback(null, emails);
     });
   });
-}
+};
 
 
 exports.getEmail = function(itemId, callback) {
@@ -222,7 +221,7 @@ exports.getEmail = function(itemId, callback) {
       callback(null, email);
     });
   });
-}
+};
 
 
 exports.getFolders = function(id, callback) {
@@ -256,4 +255,97 @@ exports.getFolders = function(id, callback) {
       callback(null, {});
     }
   });
-}
+};
+
+
+exports.getInboxFolders = function(callback) {
+
+    var  id = 'inbox'
+    var soapRequest =
+        '<tns:FindFolder Traversal="Shallow" xmlns:tns="http://schemas.microsoft.com/exchange/services/2006/messages">' +
+        '<tns:FolderShape>' +
+        '<t:BaseShape>AllProperties</t:BaseShape>' +
+        '</tns:FolderShape>' +
+        '<tns:IndexedPageFolderView Offset="0" BasePoint="Beginning"/>'+
+        '<tns:ParentFolderIds>' +
+        '<t:DistinguishedFolderId Id="inbox"></t:DistinguishedFolderId>' +
+        '</tns:ParentFolderIds>' +
+        '</tns:FindFolder>';
+
+    exports.client.FindFolder(soapRequest, function(err, result) {
+        if (err) {
+            callback(err);
+        }
+        if(!result || !result.ResponseMessages){
+            callback(null, false);
+        }else{
+            if (result.ResponseMessages.FindFolderResponseMessage.ResponseCode == 'NoError') {
+                var rootFolder = result.ResponseMessages.FindFolderResponseMessage.RootFolder;
+                // rootFolder.Folders.Folder.forEach(function(folder) {
+                //   // console.log(folder);
+                // });
+                callback(null, true);
+            }else{
+                callback(null, false);
+            }
+        }
+    });
+};
+
+
+exports.getAllFolders = function(callback) {
+    var soapRequest =
+        '<tns:SyncFolderHierarchy xmlns:tns="http://schemas.microsoft.com/exchange/services/2006/messages">' +
+        '<tns:FolderShape>' +
+        '<t:BaseShape>Default</t:BaseShape>' +
+        '</tns:FolderShape>' +
+        '</tns:SyncFolderHierarchy>';
+
+    exports.client.SyncFolderHierarchy(soapRequest, function(err, result) {
+        if (err) {
+            callback(err);
+            return;
+        }
+
+        if (result.ResponseMessages.SyncFolderHierarchyResponseMessage.ResponseCode == 'NoError') {
+            var folders = result.ResponseMessages.SyncFolderHierarchyResponseMessage.Changes;
+
+            callback(null,folders.Create);
+        }
+    });
+};
+
+
+exports.getEmailsFromFolder = function(start, limit, folderID, sort ,callback) {
+    var sortOrder = "Descending";
+    if(sort){
+        sortOrder = "Ascending";
+    }
+    var soapRequest =
+        '<tns:FindItem Traversal="Shallow">' +
+        '<tns:ItemShape>' +
+        '<t:BaseShape>Default</t:BaseShape>' +
+        '</tns:ItemShape>' +
+        '<tns:IndexedPageItemView MaxEntriesReturned="' + limit + '" Offset="' + start + '" BasePoint="Beginning"/>'+
+        '<tns:SortOrder>' +
+        '<t:FieldOrder Order="' + sortOrder + '">' +
+        '<t:FieldURI FieldURI="item:DateTimeReceived"/>' +
+        '</t:FieldOrder>' +
+        '</tns:SortOrder>' +
+        '<tns:ParentFolderIds>' +
+        '<t:FolderId Id="' + folderID + '"/>' +
+        '</tns:ParentFolderIds>' +
+        '</tns:FindItem>';
+
+    exports.client.FindItem(soapRequest, function(err, result) {
+        if (err) {
+            callback(err);
+        }
+
+        if (result.ResponseMessages.FindItemResponseMessage.ResponseCode == 'NoError') {
+            var emails = result.ResponseMessages.FindItemResponseMessage.RootFolder.Items.Message;
+
+            callback(null,emails);
+        }
+    });
+};
