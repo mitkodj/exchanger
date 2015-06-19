@@ -12,6 +12,7 @@ exports.initialize = function(settings, callback) {
   // TODO: Handle different locations of where the asmx lives.
   var endpoint = 'https://' + path.join(settings.url, 'EWS/Exchange.asmx');
   var url = path.join(__dirname, 'Services.wsdl');
+  console.log(url, endpoint);
 
   soap.createClient(url, {}, function(err, client) {
     if (err) {
@@ -24,7 +25,8 @@ exports.initialize = function(settings, callback) {
     exports.client = client;
     exports.client.setSecurity(new soap.BasicAuthSecurity(settings.username, settings.password));
 
-    return callback(null);
+    // return callback(null);
+    return callback(settings);
   }, endpoint);
 };
 
@@ -344,6 +346,52 @@ exports.getEmailsFromFolder = function(start, limit, folderID, sort ,callback) {
 
         if (result.ResponseMessages.FindItemResponseMessage.ResponseCode == 'NoError') {
             var emails = result.ResponseMessages.FindItemResponseMessage.RootFolder.Items.Message;
+
+            callback(null,emails);
+        }
+    });
+};
+
+
+exports.sendMail = function(subject, body, emailaddress ,callback) {
+    // var sortOrder = "Descending";
+    // if(sort){
+    //     sortOrder = "Ascending";
+    // }
+    var soapRequest = [
+      '<m:CreateItem MessageDisposition="SendAndSaveCopy" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages">',
+        // '<m:SavedItemFolderId>',
+        //   '<t:DistinguishedFolderId Id="sentitems" />',
+        // '</m:SavedItemFolderId>',
+        '<m:Items>',
+          '<t:Message>',
+            '<t:Subject>Company Soccer Team</t:Subject>',
+            '<t:Body BodyType="HTML">Are you interested in joining?</t:Body>',
+            '<t:ToRecipients>',
+              '<t:Mailbox>',
+                '<t:Name>Dimitar Dzhondzhorov</t:Name>',
+                '<t:EmailAddress>dimitar.dzhondzhorov@axsmarine.com</t:EmailAddress>',
+              '</t:Mailbox>',
+            '</t:ToRecipients>',
+            '<ns1:From>',
+              '<ns1:Mailbox>',
+               '<ns1:Name>Dimitar Dzhondzhorov</ns1:Name>',
+               '<ns1:EmailAddress>dimitar.dzhondzhorov@axsmarine.com</ns1:EmailAddress>',
+              '</ns1:Mailbox>',
+            '</ns1:From>',
+          '</t:Message>',
+        '</m:Items>',
+      '</m:CreateItem>'
+      ].join();
+
+    exports.client.CreateItem(soapRequest, function(err, result) {
+        if (err) {
+            callback(err);
+        }
+
+        console.log(err, result);
+        if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == 'NoError') {
+            var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
 
             callback(null,emails);
         }
