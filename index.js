@@ -24,6 +24,7 @@ exports.initialize = function(settings, callback) {
 
     exports.client = client;
     exports.client.setSecurity(new soap.BasicAuthSecurity(settings.username, settings.password));
+    exports.client.addSoapHeader('<t:RequestServerVersion Version="Exchange2010" />');
 
     // return callback(null);
     return callback(settings);
@@ -353,47 +354,103 @@ exports.getEmailsFromFolder = function(start, limit, folderID, sort ,callback) {
 };
 
 
-exports.sendMail = function(subject, body, emailaddress ,callback) {
+exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom ,callback) {
     // var sortOrder = "Descending";
     // if(sort){
     //     sortOrder = "Ascending";
     // }
     var soapRequest = [
-      '<m:CreateItem MessageDisposition="SendAndSaveCopy" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages">',
+      // '<m:CreateItem MessageDisposition="SendAndSaveCopy" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages">',
+      '<tns:CreateItem MessageDisposition="SendAndSaveCopy">',
         // '<m:SavedItemFolderId>',
         //   '<t:DistinguishedFolderId Id="sentitems" />',
         // '</m:SavedItemFolderId>',
-        '<m:Items>',
+        '<tns:Items>',
+        
           '<t:Message>',
-            '<t:Subject>Company Soccer Team</t:Subject>',
-            '<t:Body BodyType="HTML">Are you interested in joining?</t:Body>',
+          '<t:ItemClass>IPM.Note</t:ItemClass>',
+            '<t:Subject>' + subject + '</t:Subject>',
+            '<t:Body BodyType="HTML">' + body + '</t:Body>',
+            // '<t:Attachments>',
+              '<t:Attachments>',
+            '<t:FileAttachment>',
+              '<t:Name>FileAttachment.txt</t:Name>',
+              // '<t:IsInline>false</t:IsInline>',
+              // '<t:IsContactPhoto>false</t:IsContactPhoto>',
+              '<t:Content>VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4=</t:Content>',
+            '</t:FileAttachment>',
+            '<t:FileAttachment>',
+              '<t:Name>SecondAttachment.txt</t:Name>',
+              // '<t:IsInline>false</t:IsInline>',
+              // '<t:IsContactPhoto>false</t:IsContactPhoto>',
+              '<t:Content>VGhpcyBpcyB0aGUgc2Vjb25kIGZpbGUgYXR0YWNobWVudC4=</t:Content>',
+            '</t:FileAttachment>',
+            '<t:FileAttachment>',
+              '<t:Name>ThirdAttachment.jpg</t:Name>',
+              // '<t:IsInline>false</t:IsInline>',
+              // '<t:IsContactPhoto>false</t:IsContactPhoto>',
+              '<t:Content></t:Content>',
+            '</t:FileAttachment>',
+            '<t:FileAttachment>',
+              '<t:Name>FourthAttachment.txt</t:Name>',
+              // '<t:IsInline>false</t:IsInline>',
+              // '<t:IsContactPhoto>false</t:IsContactPhoto>',
+              '<t:Content></t:Content>',
+            '</t:FileAttachment>',
+            // '<t:ItemAttachment>',
+            //   '<t:Name>Attached Message Item</t:Name>',
+            //   '<t:IsInline>false</t:IsInline>',
+            //   '<t:Message>',
+            //     '<t:Subject>Message Item Subject</t:Subject>',
+            //     '<t:Body BodyType="HTML">Message Item Body</t:Body>',
+            //     '<t:ToRecipients>',
+            //       '<t:Mailbox>',
+            //         '<t:EmailAddress>sadie@contoso.com</t:EmailAddress>',
+            //       '</t:Mailbox>',
+            //       '<t:Mailbox>',
+            //         '<t:EmailAddress>mack@contoso.com</t:EmailAddress>',
+            //       '</t:Mailbox>',
+            //     '</t:ToRecipients>',
+            //   '</t:Message>',
+            // '</t:ItemAttachment>',
+          '</t:Attachments>',
+             // '<t:ItemAttachment>',
+             //   ' <t:Name>Play tennis?</t:Name>',
+             //    '<t:IsInline>false</t:IsInline>',
+             //    '<t:Message>',
+             //      '<t:MimeContent CharacterSet="UTF-8">tDQe/Eo==</t:MimeContent>',
+             //    '</t:Message>',
+             //  '</t:ItemAttachment>',
+            // '</t:Attachments>',
             '<t:ToRecipients>',
               '<t:Mailbox>',
-                '<t:Name>Dimitar Dzhondzhorov</t:Name>',
-                '<t:EmailAddress>dimitar.dzhondzhorov@axsmarine.com</t:EmailAddress>',
+                '<t:Name>' + nameTo + '</t:Name>',
+                '<t:EmailAddress>' + emailTo + '</t:EmailAddress>',
               '</t:Mailbox>',
             '</t:ToRecipients>',
-            '<ns1:From>',
-              '<ns1:Mailbox>',
-               '<ns1:Name>Dimitar Dzhondzhorov</ns1:Name>',
-               '<ns1:EmailAddress>dimitar.dzhondzhorov@axsmarine.com</ns1:EmailAddress>',
-              '</ns1:Mailbox>',
-            '</ns1:From>',
+            '<t:From>',
+              '<t:Mailbox>',
+               '<t:Name>' + nameFrom + '</t:Name>',
+               '<t:EmailAddress>' + emailFrom + '</t:EmailAddress>',
+              '</t:Mailbox>',
+            '</t:From>',
           '</t:Message>',
-        '</m:Items>',
-      '</m:CreateItem>'
-      ].join();
+        '</tns:Items>',
+      '</tns:CreateItem>'
+      ].join(' ');
 
     exports.client.CreateItem(soapRequest, function(err, result) {
-        if (err) {
-            callback(err);
-        }
+        // if (err) {
+        //     console.log(err);
+        //     callback(err, null);ResponseMessages:
+
+        // }
 
         console.log(err, result);
-        if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == 'NoError') {
-            var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
+        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == 'NoError') {
+        //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
 
-            callback(null,emails);
-        }
+        //     callback(null,emailAddress);
+        // }
     });
 };
