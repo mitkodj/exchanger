@@ -355,7 +355,11 @@ exports.getEmailsFromFolder = function(start, limit, folderID, sort ,callback) {
 };
 
 exports.testt = function(){
-  exports.sendMailWithAttachment('Hello', 'This is a test message, please do not reply', 'dimitar.dzhondzhorov@axsmarine.com', [{
+  exports.sendMailWithAttachment('Hello', 'This is a test message, please do not reply', [{
+    email: 'dimitar.dzhondzhorov@axsmarine.com'
+  }, {
+    email: 'radmit@live.com'
+  }], [{
     name: 'FileAttachment.txt',
     content: 'VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4='
   }, {
@@ -364,17 +368,16 @@ exports.testt = function(){
   }], function(err, res) {console.log(res);});
 };
 
-exports.sendMailWithAttachment = function(subject, body, recipient, files, callback){
+exports.sendMailWithAttachment = function(subject, body, recipients, files, callback){
 
-  exports.createDraft(subject, body, recipient, function(err, result) {
-    // console.log(result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id);
+  exports.createDraft(subject, body, recipients, function(err, result) {
+
     var ItemId = result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id;
 
     exports.createAttachment(ItemId, files, function(err, result1) {
 
       var ChangeKey = '';
 
-      console.log(result1.ResponseMessages);
       if (files.length > 1){
         ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage[files.length - 1].Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
       } else {
@@ -404,22 +407,15 @@ exports.sendDraft = function(itemId, changeKey, callback) {
         }
 
         callback(null, result);
-        // console.log(err, result.ResponseMessages.CreateItemResponseMessage);
-        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
-        //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
-
-        //     callback(null,emailAddress);
-        // }
     });
 };
 
 exports.createAttachment = function(itemId, files, callback) {
 
-  // files = ;
   var soapRequest = [
       '<tns:CreateAttachment>',
        '<tns:ParentItemId Id="' + itemId + '" />',
-        '<tns:Attachments>'
+       '<tns:Attachments>'
   ];
 
   for (var i = 0; i < files.length; i++) {
@@ -433,13 +429,8 @@ exports.createAttachment = function(itemId, files, callback) {
   soapRequest.push('</tns:CreateAttachment>');
   soapRequest = soapRequest.join(' ');
 
-    //Exchange2007_SP1
-
-    // exports.client.addSoapHeader('<t:RequestServerVersion Version="Exchange2007_SP1" />');
-
   exports.client.CreateAttachment(soapRequest, function(err, result) {
       if (err) {
-          // console.log(err);
           callback(err, null);
       }
 
@@ -447,8 +438,7 @@ exports.createAttachment = function(itemId, files, callback) {
   });
 };
 
-//recipient -> recipients
-exports.createDraft = function( subject, body, recipient, callback) {
+exports.createDraft = function( subject, body, recipients, callback) {
     var soapRequest = [
       '<tns:CreateItem MessageDisposition="SaveOnly">',
           '<tns:Items>',
@@ -456,15 +446,20 @@ exports.createDraft = function( subject, body, recipient, callback) {
                   '<t:ItemClass>IPM.Note</t:ItemClass>',
                   '<t:Subject>' + subject + '</t:Subject>',
                   '<t:Body BodyType="HTML">' + body + '</t:Body>',
-                  '<t:ToRecipients>',
-                      '<t:Mailbox>',
-                          '<t:EmailAddress>' + recipient + '</t:EmailAddress>',
-                      '</t:Mailbox>',
-                  '</t:ToRecipients>',
-              '</t:Message>',
-          '</tns:Items>',
-      '</tns:CreateItem>'
-    ].join(' ');
+                  '<t:ToRecipients>'
+    ];
+
+    for (var i=0; i < recipients.length; i++) {
+      soapRequest.push('<t:Mailbox>');
+      soapRequest.push('<t:EmailAddress>' + recipients[i].email + '</t:EmailAddress>');
+      soapRequest.push('</t:Mailbox>');
+    }
+          
+    soapRequest.push('</t:ToRecipients>'); 
+    soapRequest.push('</t:Message>'); 
+    soapRequest.push('</tns:Items>'); 
+    soapRequest.push('</tns:CreateItem>');
+    soapRequest = soapRequest.join(' ');
 
     exports.client.CreateItem(soapRequest, function(err, result) {
         if (err) {
