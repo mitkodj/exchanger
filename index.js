@@ -358,6 +358,9 @@ exports.testt = function(){
   exports.sendMailWithAttachment('Hello', 'This is a test message, please do not reply', 'dimitar.dzhondzhorov@axsmarine.com', [{
     name: 'FileAttachment.txt',
     content: 'VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4='
+  }, {
+    name: 'FileAttachment1.txt',
+    content: 'TG9sIHRoYXQgd2FzIGFuIGF0dGFjaG1lbnQgdG8gbWFrZS4='
   }], function(err, res) {console.log(res);});
 };
 
@@ -367,11 +370,16 @@ exports.sendMailWithAttachment = function(subject, body, recipient, files, callb
     // console.log(result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id);
     var ItemId = result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id;
 
-    exports.createAttachment(ItemId, null, function(err, result1) {
+    exports.createAttachment(ItemId, files, function(err, result1) {
 
-      // console.log(err, result1);
-      var ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage.Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
-      // console.log("ChangeKey: ", ChangeKey);
+      var ChangeKey = '';
+
+      console.log(result1.ResponseMessages);
+      if (files.length > 1){
+        ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage[files.length - 1].Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
+      } else {
+        ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage.Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
+      }
 
       exports.sendDraft(ItemId, ChangeKey, function(err, result2) {
         callback(err, result2);
@@ -411,27 +419,32 @@ exports.createAttachment = function(itemId, files, callback) {
   var soapRequest = [
       '<tns:CreateAttachment>',
        '<tns:ParentItemId Id="' + itemId + '" />',
-        '<tns:Attachments>',
-          '<t:FileAttachment>',
-            '<t:Name>' + files[0].name + '</t:Name>',
-            '<t:Content>' + files[0].content + '</t:Content>',
-          '</t:FileAttachment>',
-       '</tns:Attachments>', 
-      '</tns:CreateAttachment>'
-    ].join(' '); 
+        '<tns:Attachments>'
+  ];
+
+  for (var i = 0; i < files.length; i++) {
+    soapRequest.push('<t:FileAttachment>');
+    soapRequest.push('<t:Name>' + files[i].name + '</t:Name>');
+    soapRequest.push('<t:Content>' + files[i].content + '</t:Content>');
+    soapRequest.push('</t:FileAttachment>');
+  }
+          
+  soapRequest.push('</tns:Attachments>'); 
+  soapRequest.push('</tns:CreateAttachment>');
+  soapRequest = soapRequest.join(' ');
 
     //Exchange2007_SP1
 
     // exports.client.addSoapHeader('<t:RequestServerVersion Version="Exchange2007_SP1" />');
 
-    exports.client.CreateAttachment(soapRequest, function(err, result) {
-        if (err) {
-            // console.log(err);
-            callback(err, null);
-        }
+  exports.client.CreateAttachment(soapRequest, function(err, result) {
+      if (err) {
+          // console.log(err);
+          callback(err, null);
+      }
 
-        callback(null, result);
-    });
+      callback(null, result);
+  });
 };
 
 //recipient -> recipients
