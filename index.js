@@ -25,6 +25,7 @@ exports.initialize = function(settings, callback) {
     exports.client = client;
     exports.client.setSecurity(new soap.BasicAuthSecurity(settings.username, settings.password));
     exports.client.addSoapHeader('<t:RequestServerVersion Version="Exchange2010" />');
+    exports.client.addSoapHeader('<t:TimeZoneContext> <t:TimeZoneDefinition Id="Central Standard Time" /> </t:TimeZoneContext>');
 
     // return callback(null);
     return callback(settings);
@@ -368,7 +369,7 @@ exports.sendDraft = function(itemId, changeKey, callback) {
             callback(err, null);
         }
 
-        callback(null, res);
+        callback(null, result);
         // console.log(err, result.ResponseMessages.CreateItemResponseMessage);
         // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
         //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
@@ -380,25 +381,24 @@ exports.sendDraft = function(itemId, changeKey, callback) {
 
 exports.createAttachment = function(itemId, callback) {
   var soapRequest = [
-      '<m:CreateAttachment>',
-       '<m:ParentItemId Id="' + itemId + '" />',
-        '<m:Attachments>',
+      '<tns:CreateAttachment>',
+       '<tns:ParentItemId Id="' + itemId + '" />',
+        '<tns:Attachments>',
           '<t:FileAttachment>',
             '<t:Name>FileAttachment.txt</t:Name>',
             '<t:Content>VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4=</t:Content>',
           '</t:FileAttachment>',
-       '</m:Attachments>',
-      '</m:CreateAttachment>'
+       '</tns:Attachments>', 
+      '</tns:CreateAttachment>'
     ].join(' '); 
 
     //Exchange2007_SP1
-    
-    exports.client.addSoapHeader('<t:RequestServerVersion Version="Exchange2007_SP1" />');
-    exports.client.addSoapHeader('<t:TimeZoneContext> <t:TimeZoneDefinition Id="Central Standard Time" /> </t:TimeZoneContext>');
+
+    // exports.client.addSoapHeader('<t:RequestServerVersion Version="Exchange2007_SP1" />');
 
     exports.client.CreateAttachment(soapRequest, function(err, result) {
         if (err) {
-            console.log(err);
+            // console.log(err);
             callback(err, null);
         }
 
@@ -446,15 +446,16 @@ exports.createDraft = function(callback) {
 
         exports.createAttachment(ItemId, function(err, result1) {
 
+          // console.log(err, result1);
           var ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage.Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
           console.log("ChangeKey: ", ChangeKey);
 
           exports.sendDraft(ItemId, ChangeKey, function(err, result2) {
-            // console.log(err, result2);
+            console.log(err, result2);
           });
         });
 
-        console.log(cI, eA);
+        // console.log(cI, eA);
 
         // console.log(err, result.ResponseMessages.CreateItemResponseMessage);
         // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
