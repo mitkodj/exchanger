@@ -353,6 +353,118 @@ exports.getEmailsFromFolder = function(start, limit, folderID, sort ,callback) {
     });
 };
 
+exports.sendDraft = function(itemId, changeKey, callback) {
+  var soapRequest = [
+    '<SendItem xmlns="http://schemas.microsoft.com/exchange/services/2006/messages" SaveItemToFolder="true">',
+      '<ItemIds>',
+        '<t:ItemId Id="' + itemId + '" ChangeKey="' + changeKey + '"/>',
+     ' </ItemIds>',
+    '</SendItem>'
+    ].join(' '); 
+
+    exports.client.SendItem(soapRequest, function(err, result) {
+        if (err) {
+            console.log(err);
+            callback(err, null);
+        }
+
+        callback(null, res);
+        // console.log(err, result.ResponseMessages.CreateItemResponseMessage);
+        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
+        //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
+
+        //     callback(null,emailAddress);
+        // }
+    });
+}
+
+exports.createAttachment = function(itemId, callback) {
+  var soapRequest = [
+      '<m:CreateAttachment>',
+       '<m:ParentItemId Id="' + itemId + '" />',
+        '<m:Attachments>',
+          '<t:FileAttachment>',
+            '<t:Name>FileAttachment.txt</t:Name>',
+            '<t:Content>VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4=</t:Content>',
+          '</t:FileAttachment>',
+       '</m:Attachments>',
+      '</m:CreateAttachment>'
+    ].join(' '); 
+
+    //Exchange2007_SP1
+    
+    exports.client.addSoapHeader('<t:RequestServerVersion Version="Exchange2007_SP1" />');
+    exports.client.addSoapHeader('<t:TimeZoneContext> <t:TimeZoneDefinition Id="Central Standard Time" /> </t:TimeZoneContext>');
+
+    exports.client.CreateAttachment(soapRequest, function(err, result) {
+        if (err) {
+            console.log(err);
+            callback(err, null);
+        }
+
+        callback(null, result);
+        // console.log(err, result.ResponseMessages.CreateItemResponseMessage);
+        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
+        //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
+
+        //     callback(null,emailAddress);
+        // }
+    });
+}
+
+exports.createDraft = function(callback) {
+    var soapRequest = [
+      // '<m:CreateItem MessageDisposition="SendAndSaveCopy" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages">',
+      
+              '<tns:CreateItem MessageDisposition="SaveOnly">',
+                  '<tns:Items>',
+                      '<t:Message>',
+                          '<t:ItemClass>IPM.Note</t:ItemClass>',
+                          '<t:Subject>Message with Attachments</t:Subject>',
+                          '<t:Body BodyType="HTML">dsadsadsadasdasThis message contains four file attachments and one message item attachment.</t:Body>',
+                          '<t:ToRecipients>',
+                              '<t:Mailbox>',
+                                  '<t:EmailAddress>dimitar.dzhondzhorov@axsmarine.com</t:EmailAddress>',
+                              '</t:Mailbox>',
+                          '</t:ToRecipients>',
+                      '</t:Message>',
+                  '</tns:Items>',
+              '</tns:CreateItem>'
+    ].join(' ');
+
+    var cI = this.createAttachment;
+    var eA = exports.createAttachment;
+
+    exports.client.CreateItem(soapRequest, function(err, result) {
+        if (err) {
+            console.log(err);
+            callback(err, null);
+        }
+
+        console.log(result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id);
+        var ItemId = result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id;
+
+        exports.createAttachment(ItemId, function(err, result1) {
+
+          var ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage.Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
+          console.log("ChangeKey: ", ChangeKey);
+
+          exports.sendDraft(ItemId, ChangeKey, function(err, result2) {
+            // console.log(err, result2);
+          });
+        });
+
+        console.log(cI, eA);
+
+        // console.log(err, result.ResponseMessages.CreateItemResponseMessage);
+        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
+        //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
+
+        //     callback(null,emailAddress);
+        // }
+    });
+
+};
 
 exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom ,callback) {
     // var sortOrder = "Descending";
@@ -439,6 +551,8 @@ exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom 
       '</tns:CreateItem>'
       ].join(' ');
 
+      console.log(soapRequest);
+
     exports.client.CreateItem(soapRequest, function(err, result) {
         // if (err) {
         //     console.log(err);
@@ -446,8 +560,8 @@ exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom 
 
         // }
 
-        console.log(err, result);
-        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == 'NoError') {
+        console.log(err, result.ResponseMessages.CreateItemResponseMessage);
+        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
         //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
 
         //     callback(null,emailAddress);
