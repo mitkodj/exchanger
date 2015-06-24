@@ -354,6 +354,32 @@ exports.getEmailsFromFolder = function(start, limit, folderID, sort ,callback) {
     });
 };
 
+exports.testt = function(){
+  exports.sendMailWithAttachment('Hello', 'This is a test message, please do not reply', 'dimitar.dzhondzhorov@axsmarine.com', [{
+    name: 'FileAttachment.txt',
+    content: 'VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4='
+  }], function(err, res) {console.log(res);});
+};
+
+exports.sendMailWithAttachment = function(subject, body, recipient, files, callback){
+
+  exports.createDraft(subject, body, recipient, function(err, result) {
+    // console.log(result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id);
+    var ItemId = result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id;
+
+    exports.createAttachment(ItemId, null, function(err, result1) {
+
+      // console.log(err, result1);
+      var ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage.Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
+      // console.log("ChangeKey: ", ChangeKey);
+
+      exports.sendDraft(ItemId, ChangeKey, function(err, result2) {
+        callback(err, result2);
+      });
+    });
+  });
+};
+
 exports.sendDraft = function(itemId, changeKey, callback) {
   var soapRequest = [
     '<SendItem xmlns="http://schemas.microsoft.com/exchange/services/2006/messages" SaveItemToFolder="true">',
@@ -377,16 +403,18 @@ exports.sendDraft = function(itemId, changeKey, callback) {
         //     callback(null,emailAddress);
         // }
     });
-}
+};
 
-exports.createAttachment = function(itemId, callback) {
+exports.createAttachment = function(itemId, files, callback) {
+
+  // files = ;
   var soapRequest = [
       '<tns:CreateAttachment>',
        '<tns:ParentItemId Id="' + itemId + '" />',
         '<tns:Attachments>',
           '<t:FileAttachment>',
-            '<t:Name>FileAttachment.txt</t:Name>',
-            '<t:Content>VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4=</t:Content>',
+            '<t:Name>' + files[0].name + '</t:Name>',
+            '<t:Content>' + files[0].content + '</t:Content>',
           '</t:FileAttachment>',
        '</tns:Attachments>', 
       '</tns:CreateAttachment>'
@@ -403,37 +431,27 @@ exports.createAttachment = function(itemId, callback) {
         }
 
         callback(null, result);
-        // console.log(err, result.ResponseMessages.CreateItemResponseMessage);
-        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
-        //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
-
-        //     callback(null,emailAddress);
-        // }
     });
-}
+};
 
-exports.createDraft = function(callback) {
+//recipient -> recipients
+exports.createDraft = function( subject, body, recipient, callback) {
     var soapRequest = [
-      // '<m:CreateItem MessageDisposition="SendAndSaveCopy" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages">',
-      
-              '<tns:CreateItem MessageDisposition="SaveOnly">',
-                  '<tns:Items>',
-                      '<t:Message>',
-                          '<t:ItemClass>IPM.Note</t:ItemClass>',
-                          '<t:Subject>Message with Attachments</t:Subject>',
-                          '<t:Body BodyType="HTML">dsadsadsadasdasThis message contains four file attachments and one message item attachment.</t:Body>',
-                          '<t:ToRecipients>',
-                              '<t:Mailbox>',
-                                  '<t:EmailAddress>dimitar.dzhondzhorov@axsmarine.com</t:EmailAddress>',
-                              '</t:Mailbox>',
-                          '</t:ToRecipients>',
-                      '</t:Message>',
-                  '</tns:Items>',
-              '</tns:CreateItem>'
+      '<tns:CreateItem MessageDisposition="SaveOnly">',
+          '<tns:Items>',
+              '<t:Message>',
+                  '<t:ItemClass>IPM.Note</t:ItemClass>',
+                  '<t:Subject>' + subject + '</t:Subject>',
+                  '<t:Body BodyType="HTML">' + body + '</t:Body>',
+                  '<t:ToRecipients>',
+                      '<t:Mailbox>',
+                          '<t:EmailAddress>' + recipient + '</t:EmailAddress>',
+                      '</t:Mailbox>',
+                  '</t:ToRecipients>',
+              '</t:Message>',
+          '</tns:Items>',
+      '</tns:CreateItem>'
     ].join(' ');
-
-    var cI = this.createAttachment;
-    var eA = exports.createAttachment;
 
     exports.client.CreateItem(soapRequest, function(err, result) {
         if (err) {
@@ -441,21 +459,7 @@ exports.createDraft = function(callback) {
             callback(err, null);
         }
 
-        console.log(result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id);
-        var ItemId = result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id;
-
-        exports.createAttachment(ItemId, function(err, result1) {
-
-          // console.log(err, result1);
-          var ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage.Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
-          console.log("ChangeKey: ", ChangeKey);
-
-          exports.sendDraft(ItemId, ChangeKey, function(err, result2) {
-            console.log(err, result2);
-          });
-        });
-
-        // console.log(cI, eA);
+        callback(null, result);
 
         // console.log(err, result.ResponseMessages.CreateItemResponseMessage);
         // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
