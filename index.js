@@ -12,6 +12,7 @@ exports.initialize = function(settings, callback) {
   // TODO: Handle different locations of where the asmx lives.
   var endpoint = 'https://' + path.join(settings.url, 'EWS/Exchange.asmx');
   var url = path.join(__dirname, 'Services.wsdl');
+  console.log(url, endpoint);
 
   soap.createClient(url, {}, function(err, client) {
     if (err) {
@@ -23,8 +24,11 @@ exports.initialize = function(settings, callback) {
 
     exports.client = client;
     exports.client.setSecurity(new soap.BasicAuthSecurity(settings.username, settings.password));
+    exports.client.addSoapHeader('<t:RequestServerVersion Version="Exchange2010" />');
+    exports.client.addSoapHeader('<t:TimeZoneContext> <t:TimeZoneDefinition Id="Central Standard Time" /> </t:TimeZoneContext>');
 
-    return callback(null);
+    // return callback(null);
+    return callback(settings);
   }, endpoint);
 };
 
@@ -347,5 +351,168 @@ exports.getEmailsFromFolder = function(start, limit, folderID, sort ,callback) {
 
             callback(null,emails);
         }
+    });
+};
+
+exports.sendMailWithAttachment = function(subject, body, recipients, files, callback){
+
+  exports.createDraft(subject, body, recipients, function(err, result) {
+
+    var ItemId = result.ResponseMessages.CreateItemResponseMessage.Items.Message.ItemId.attributes.Id;
+
+    exports.createAttachment(ItemId, files, function(err, result1) {
+
+      var ChangeKey = '';
+
+      if (files.length > 1){
+        ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage[files.length - 1].Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
+      } else {
+        ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage.Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
+      }
+
+      exports.sendDraft(ItemId, ChangeKey, function(err, result2) {
+        callback(err, result2);
+      });
+    });
+  });
+};
+
+exports.sendDraft = function(itemId, changeKey, callback) {
+  var soapRequest = [
+    '<SendItem xmlns="http://schemas.microsoft.com/exchange/services/2006/messages" SaveItemToFolder="true">',
+      '<ItemIds>',
+        '<t:ItemId Id="' + itemId + '" ChangeKey="' + changeKey + '"/>',
+     ' </ItemIds>',
+    '</SendItem>'
+    ].join(' '); 
+
+    exports.client.SendItem(soapRequest, function(err, result) {
+        if (err) {
+            console.log(err);
+            callback(err, null);
+        }
+
+        callback(null, result);
+    });
+};
+
+exports.createAttachment = function(itemId, files, callback) {
+
+  var soapRequest = [
+      '<tns:CreateAttachment>',
+       '<tns:ParentItemId Id="' + itemId + '" />',
+       '<tns:Attachments>'
+  ];
+
+  for (var i = 0; i < files.length; i++) {
+    soapRequest.push('<t:FileAttachment>');
+    soapRequest.push('<t:Name>' + files[i].name + '</t:Name>');
+    soapRequest.push('<t:Content>' + files[i].content + '</t:Content>');
+    soapRequest.push('</t:FileAttachment>');
+  }
+          
+  soapRequest.push('</tns:Attachments>'); 
+  soapRequest.push('</tns:CreateAttachment>');
+  soapRequest = soapRequest.join(' ');
+
+  exports.client.CreateAttachment(soapRequest, function(err, result) {
+      if (err) {
+          callback(err, null);
+      }
+
+      callback(null, result);
+  });
+};
+
+exports.createDraft = function( subject, body, recipients, callback) {
+    var soapRequest = [
+      '<tns:CreateItem MessageDisposition="SaveOnly">',
+          '<tns:Items>',
+              '<t:Message>',
+                  '<t:ItemClass>IPM.Note</t:ItemClass>',
+                  '<t:Subject>' + subject + '</t:Subject>',
+                  '<t:Body BodyType="HTML">' + body + '</t:Body>',
+                  '<t:ToRecipients>'
+    ];
+
+    for (var i=0; i < recipients.length; i++) {
+      soapRequest.push('<t:Mailbox>');
+      soapRequest.push('<t:EmailAddress>' + recipients[i].email + '</t:EmailAddress>');
+      soapRequest.push('</t:Mailbox>');
+    }
+          
+    soapRequest.push('</t:ToRecipients>'); 
+    soapRequest.push('</t:Message>'); 
+    soapRequest.push('</tns:Items>'); 
+    soapRequest.push('</tns:CreateItem>');
+    soapRequest = soapRequest.join(' ');
+
+    exports.client.CreateItem(soapRequest, function(err, result) {
+        if (err) {
+            console.log(err);
+            callback(err, null);
+        }
+
+        callback(null, result);
+
+        // console.log(err, result.ResponseMessages.CreateItemResponseMessage);
+        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
+        //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
+
+        //     callback(null,emailAddress);
+        // }
+    });
+
+};
+
+exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom ,callback) {
+    // var sortOrder = "Descending";
+    // if(sort){
+    //     sortOrder = "Ascending";
+    // }
+    var soapRequest = [
+      // '<m:CreateItem MessageDisposition="SendAndSaveCopy" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages">',
+      '<tns:CreateItem MessageDisposition="SendCopy">',
+        // '<m:SavedItemFolderId>',
+        //   '<t:DistinguishedFolderId Id="sentitems" />',
+        // '</m:SavedItemFolderId>',
+        '<tns:Items>',
+        
+          '<t:Message>',
+          '<t:ItemClass>IPM.Note</t:ItemClass>',
+            '<t:Subject>' + subject + '</t:Subject>',
+            '<t:Body BodyType="HTML">' + body + '</t:Body>',
+            '<t:ToRecipients>',
+              '<t:Mailbox>',
+                '<t:Name>' + nameTo + '</t:Name>',
+                '<t:EmailAddress>' + emailTo + '</t:EmailAddress>',
+              '</t:Mailbox>',
+            '</t:ToRecipients>',
+            '<t:From>',
+              '<t:Mailbox>',
+               '<t:Name>' + nameFrom + '</t:Name>',
+               '<t:EmailAddress>' + emailFrom + '</t:EmailAddress>',
+              '</t:Mailbox>',
+            '</t:From>',
+          '</t:Message>',
+        '</tns:Items>',
+      '</tns:CreateItem>'
+      ].join(' ');
+
+      console.log(soapRequest);
+
+    exports.client.CreateItem(soapRequest, function(err, result) {
+        // if (err) {
+        //     console.log(err);
+        //     callback(err, null);ResponseMessages:
+
+        // }
+
+        console.log(err, result.ResponseMessages.CreateItemResponseMessage);
+        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
+        //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
+
+        //     callback(null,emailAddress);
+        // }
     });
 };
