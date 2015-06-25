@@ -2,6 +2,7 @@ var path = require('path')
   , moment = require('moment')
   , crypto = require('crypto')
   , xml2js = require('xml2js')
+  , fs = require('fs')
   ;
 
 
@@ -369,40 +370,28 @@ exports.testt = function(){
 };
 
 exports.testt1 = function(){
-  exports.createAttachmentFile([{
-    name: 'FileAttachment.txt',
-    content: 'VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4='
-  }], function(err, res) {console.log(res);});
-};
 
 
-exports.createAttachmentFile = function(files, callback) {
+  // path.join(__dirname + '/' + 'Dummy.doc');
+  console.log(__dirname);
+  fs.readFile(__dirname + '/009-Heart-and-Soul-IR1.jpg', function (err, data){
+    if (err) throw err;
+    // console.log(data);
 
-  var soapRequest = [
-      '<tns:CreateAttachment>',
-       '<tns:Attachments>'
-  ];
-
-  for (var i = 0; i < files.length; i++) {
-    soapRequest.push('<t:FileAttachment>');
-    soapRequest.push('<t:Name>' + files[i].name + '</t:Name>');
-    soapRequest.push('<t:Content>' + files[i].content + '</t:Content>');
-    soapRequest.push('</t:FileAttachment>');
-  }
-          
-  soapRequest.push('</tns:Attachments>'); 
-  soapRequest.push('</tns:CreateAttachment>');
-  soapRequest = soapRequest.join(' ');
-
-  exports.client.CreateAttachment(soapRequest, function(err, result) {
-      if (err) {
-          callback(err, null);
-      }
-
-      callback(null, result);
+    exports.sendMailWithAttachment('Hello', 'This is a test message, please do not reply', [{
+      email: 'dimitar.dzhondzhorov@axsmarine.com'
+    // }, {
+    //   email: 'radmit@live.com'
+    }], [{
+      name: '009-Heart-and-Soul-IR1.jpg',
+      content: data.toString('base64')
+    }], function(err, res) {console.log(res);});
   });
+  // exports.createAttachmentFile([{
+  //   name: 'FileAttachment.txt',
+  //   content: 'VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4='
+  // }], function(err, res) {console.log(res);});
 };
-
 
 exports.sendMailWithAttachment = function(subject, body, recipients, files, callback){
 
@@ -522,7 +511,7 @@ exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom 
     // }
     var soapRequest = [
       // '<m:CreateItem MessageDisposition="SendAndSaveCopy" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages">',
-      '<tns:CreateItem MessageDisposition="SendAndSaveCopy">',
+      '<tns:CreateItem MessageDisposition="SendCopy">',
         // '<m:SavedItemFolderId>',
         //   '<t:DistinguishedFolderId Id="sentitems" />',
         // '</m:SavedItemFolderId>',
@@ -532,57 +521,6 @@ exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom 
           '<t:ItemClass>IPM.Note</t:ItemClass>',
             '<t:Subject>' + subject + '</t:Subject>',
             '<t:Body BodyType="HTML">' + body + '</t:Body>',
-            // '<t:Attachments>',
-              '<t:Attachments>',
-            '<t:FileAttachment>',
-              '<t:Name>FileAttachment.txt</t:Name>',
-              // '<t:IsInline>false</t:IsInline>',
-              // '<t:IsContactPhoto>false</t:IsContactPhoto>',
-              '<t:Content>VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4=</t:Content>',
-            '</t:FileAttachment>',
-            '<t:FileAttachment>',
-              '<t:Name>SecondAttachment.txt</t:Name>',
-              // '<t:IsInline>false</t:IsInline>',
-              // '<t:IsContactPhoto>false</t:IsContactPhoto>',
-              '<t:Content>VGhpcyBpcyB0aGUgc2Vjb25kIGZpbGUgYXR0YWNobWVudC4=</t:Content>',
-            '</t:FileAttachment>',
-            '<t:FileAttachment>',
-              '<t:Name>ThirdAttachment.jpg</t:Name>',
-              // '<t:IsInline>false</t:IsInline>',
-              // '<t:IsContactPhoto>false</t:IsContactPhoto>',
-              '<t:Content></t:Content>',
-            '</t:FileAttachment>',
-            '<t:FileAttachment>',
-              '<t:Name>FourthAttachment.txt</t:Name>',
-              // '<t:IsInline>false</t:IsInline>',
-              // '<t:IsContactPhoto>false</t:IsContactPhoto>',
-              '<t:Content></t:Content>',
-            '</t:FileAttachment>',
-            // '<t:ItemAttachment>',
-            //   '<t:Name>Attached Message Item</t:Name>',
-            //   '<t:IsInline>false</t:IsInline>',
-            //   '<t:Message>',
-            //     '<t:Subject>Message Item Subject</t:Subject>',
-            //     '<t:Body BodyType="HTML">Message Item Body</t:Body>',
-            //     '<t:ToRecipients>',
-            //       '<t:Mailbox>',
-            //         '<t:EmailAddress>sadie@contoso.com</t:EmailAddress>',
-            //       '</t:Mailbox>',
-            //       '<t:Mailbox>',
-            //         '<t:EmailAddress>mack@contoso.com</t:EmailAddress>',
-            //       '</t:Mailbox>',
-            //     '</t:ToRecipients>',
-            //   '</t:Message>',
-            // '</t:ItemAttachment>',
-          '</t:Attachments>',
-             // '<t:ItemAttachment>',
-             //   ' <t:Name>Play tennis?</t:Name>',
-             //    '<t:IsInline>false</t:IsInline>',
-             //    '<t:Message>',
-             //      '<t:MimeContent CharacterSet="UTF-8">tDQe/Eo==</t:MimeContent>',
-             //    '</t:Message>',
-             //  '</t:ItemAttachment>',
-            // '</t:Attachments>',
             '<t:ToRecipients>',
               '<t:Mailbox>',
                 '<t:Name>' + nameTo + '</t:Name>',
