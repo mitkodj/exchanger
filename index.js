@@ -2,7 +2,6 @@ var path = require('path')
   , moment = require('moment')
   , crypto = require('crypto')
   , xml2js = require('xml2js')
-  , fs = require('fs')
   ;
 
 
@@ -353,44 +352,6 @@ exports.getEmailsFromFolder = function(start, limit, folderID, sort ,callback) {
             callback(null,emails);
         }
     });
-};
-
-exports.testt = function(){
-  exports.sendMailWithAttachment('Hello', 'This is a test message, please do not reply', [{
-    email: 'dimitar.dzhondzhorov@axsmarine.com'
-  }, {
-    email: 'radmit@live.com'
-  }], [{
-    name: 'FileAttachment.txt',
-    content: 'VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4='
-  }, {
-    name: 'FileAttachment1.txt',
-    content: 'TG9sIHRoYXQgd2FzIGFuIGF0dGFjaG1lbnQgdG8gbWFrZS4='
-  }], function(err, res) {console.log(res);});
-};
-
-exports.testt1 = function(){
-
-
-  // path.join(__dirname + '/' + 'Dummy.doc');
-  console.log(__dirname);
-  fs.readFile(__dirname + '/009-Heart-and-Soul-IR1.jpg', function (err, data){
-    if (err) throw err;
-    // console.log(data);
-
-    exports.sendMailWithAttachment('Hello', 'This is a test message, please do not reply', [{
-      email: 'dimitar.dzhondzhorov@axsmarine.com'
-    // }, {
-    //   email: 'radmit@live.com'
-    }], [{
-      name: '009-Heart-and-Soul-IR1.jpg',
-      content: data.toString('base64')
-    }], function(err, res) {console.log(res);});
-  });
-  // exports.createAttachmentFile([{
-  //   name: 'FileAttachment.txt',
-  //   content: 'VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4='
-  // }], function(err, res) {console.log(res);});
 };
 
 exports.sendMailWithAttachment = function(subject, body, recipients, files, callback){
