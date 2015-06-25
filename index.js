@@ -368,6 +368,42 @@ exports.testt = function(){
   }], function(err, res) {console.log(res);});
 };
 
+exports.testt1 = function(){
+  exports.createAttachmentFile([{
+    name: 'FileAttachment.txt',
+    content: 'VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4='
+  }], function(err, res) {console.log(res);});
+};
+
+
+exports.createAttachmentFile = function(files, callback) {
+
+  var soapRequest = [
+      '<tns:CreateAttachment>',
+       '<tns:Attachments>'
+  ];
+
+  for (var i = 0; i < files.length; i++) {
+    soapRequest.push('<t:FileAttachment>');
+    soapRequest.push('<t:Name>' + files[i].name + '</t:Name>');
+    soapRequest.push('<t:Content>' + files[i].content + '</t:Content>');
+    soapRequest.push('</t:FileAttachment>');
+  }
+          
+  soapRequest.push('</tns:Attachments>'); 
+  soapRequest.push('</tns:CreateAttachment>');
+  soapRequest = soapRequest.join(' ');
+
+  exports.client.CreateAttachment(soapRequest, function(err, result) {
+      if (err) {
+          callback(err, null);
+      }
+
+      callback(null, result);
+  });
+};
+
+
 exports.sendMailWithAttachment = function(subject, body, recipients, files, callback){
 
   exports.createDraft(subject, body, recipients, function(err, result) {
