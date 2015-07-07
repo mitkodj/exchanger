@@ -466,16 +466,9 @@ exports.createDraft = function( subject, body, recipients, callback) {
 };
 
 exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom ,callback) {
-    // var sortOrder = "Descending";
-    // if(sort){
-    //     sortOrder = "Ascending";
-    // }
+    
     var soapRequest = [
-      // '<m:CreateItem MessageDisposition="SendAndSaveCopy" xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types" xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages">',
-      '<tns:CreateItem MessageDisposition="SendCopy">',
-        // '<m:SavedItemFolderId>',
-        //   '<t:DistinguishedFolderId Id="sentitems" />',
-        // '</m:SavedItemFolderId>',
+      '<tns:CreateItem MessageDisposition="SendAndSaveCopy">',
         '<tns:Items>',
         
           '<t:Message>',
@@ -484,7 +477,7 @@ exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom 
             '<t:Body BodyType="HTML">' + body + '</t:Body>',
             '<t:ToRecipients>',
               '<t:Mailbox>',
-                '<t:Name>' + nameTo + '</t:Name>',
+                nameTo? '<t:Name>' + nameTo + '</t:Name>' : '',
                 '<t:EmailAddress>' + emailTo + '</t:EmailAddress>',
               '</t:Mailbox>',
             '</t:ToRecipients>',
@@ -502,17 +495,23 @@ exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom 
       console.log(soapRequest);
 
     exports.client.CreateItem(soapRequest, function(err, result) {
-        // if (err) {
-        //     console.log(err);
-        //     callback(err, null);ResponseMessages:
+        if (err) {
+            console.log(err.body);
+            callback(err, null);
+        }
 
-        // }
+        if (result.ResponseMessages) {
+          if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == 'NoError') {
+              var emails = result.ResponseMessages.CreateItemResponseMessage.ResponseCode;
 
-        console.log(err, result.ResponseMessages.CreateItemResponseMessage);
-        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
-        //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
+              callback(null,emails);
+          }
+        } else {
+          if (result.ResponseMessage.CreateItemResponseMessage.ResponseCode == 'NoError') {
+              var emails = result.ResponseMessage.CreateItemResponseMessage.ResponseCode;
 
-        //     callback(null,emailAddress);
-        // }
+              callback(null,emails);
+          }
+        }
     });
 };
