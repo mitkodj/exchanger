@@ -354,6 +354,20 @@ exports.getEmailsFromFolder = function(start, limit, folderID, sort ,callback) {
     });
 };
 
+exports.testt = function(){
+  exports.sendMailWithAttachment('Hello', 'This is a test message, please do not reply', [{
+    email: 'dimitar.dzhondzhorov@axsmarine.com'
+  }, {
+    email: 'radmit@live.com'
+  }], [{
+    name: 'FileAttachment.txt',
+    content: 'VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4='
+  }, {
+    name: 'FileAttachment1.txt',
+    content: 'TG9sIHRoYXQgd2FzIGFuIGF0dGFjaG1lbnQgdG8gbWFrZS4='
+  }], function(err, res) {console.log(res);});
+};
+
 exports.sendMailWithAttachment = function(subject, body, recipients, files, callback){
 
   exports.createDraft(subject, body, recipients, function(err, result) {
@@ -363,6 +377,7 @@ exports.sendMailWithAttachment = function(subject, body, recipients, files, call
     exports.createAttachment(ItemId, files, function(err, result1) {
 
       var ChangeKey = '';
+      console.log(result1);
 
       if (files.length > 1){
         ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage[files.length - 1].Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
@@ -408,6 +423,11 @@ exports.createAttachment = function(itemId, files, callback) {
     soapRequest.push('<t:FileAttachment>');
     soapRequest.push('<t:Name>' + files[i].name + '</t:Name>');
     soapRequest.push('<t:Content>' + files[i].content + '</t:Content>');
+
+    if (files[i].isInline) {
+      soapRequest.push('<t:IsInline>true</t:IsInline>');
+      soapRequest.push('<t:ContentId>' + files[i].name + '</t:ContentId>');
+    }
     soapRequest.push('</t:FileAttachment>');
   }
           
