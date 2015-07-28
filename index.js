@@ -12,7 +12,6 @@ exports.initialize = function(settings, callback) {
   // TODO: Handle different locations of where the asmx lives.
   var endpoint = 'https://' + path.join(settings.url, 'EWS/Exchange.asmx');
   var url = path.join(__dirname, 'Services.wsdl');
-  console.log(url, endpoint);
 
   soap.createClient(url, {}, function(err, client) {
     if (err) {
@@ -251,11 +250,7 @@ exports.getFolders = function(id, callback) {
     
     if (result.ResponseMessages.FindFolderResponseMessage.ResponseCode == 'NoError') {
       var rootFolder = result.ResponseMessages.FindFolderResponseMessage.RootFolder;
-      
-      rootFolder.Folders.Folder.forEach(function(folder) {
-        // console.log(folder);
-      });
-
+    
       callback(null, {});
     }
   });
@@ -285,9 +280,7 @@ exports.getInboxFolders = function(callback) {
         }else{
             if (result.ResponseMessages.FindFolderResponseMessage.ResponseCode == 'NoError') {
                 var rootFolder = result.ResponseMessages.FindFolderResponseMessage.RootFolder;
-                // rootFolder.Folders.Folder.forEach(function(folder) {
-                //   // console.log(folder);
-                // });
+                
                 callback(null, true);
             }else{
                 callback(null, false);
@@ -354,20 +347,6 @@ exports.getEmailsFromFolder = function(start, limit, folderID, sort ,callback) {
     });
 };
 
-exports.testt = function(){
-  exports.sendMailWithAttachment('Hello', 'This is a test message, please do not reply', [{
-    email: 'dimitar.dzhondzhorov@axsmarine.com'
-  }, {
-    email: 'radmit@live.com'
-  }], [{
-    name: 'FileAttachment.txt',
-    content: 'VGhpcyBpcyBhIGZpbGUgYXR0YWNobWVudC4='
-  }, {
-    name: 'FileAttachment1.txt',
-    content: 'TG9sIHRoYXQgd2FzIGFuIGF0dGFjaG1lbnQgdG8gbWFrZS4='
-  }], function(err, res) {console.log(res);});
-};
-
 exports.sendMailWithAttachment = function(subject, body, recipients, files, callback){
 
   exports.createDraft(subject, body, recipients, function(err, result) {
@@ -377,7 +356,6 @@ exports.sendMailWithAttachment = function(subject, body, recipients, files, call
     exports.createAttachment(ItemId, files, function(err, result1) {
 
       var ChangeKey = '';
-      console.log(result1);
 
       if (files.length > 1){
         ChangeKey = result1.ResponseMessages.CreateAttachmentResponseMessage[files.length - 1].Attachments.FileAttachment.AttachmentId.attributes.RootItemChangeKey;
@@ -403,7 +381,6 @@ exports.sendDraft = function(itemId, changeKey, callback) {
 
     exports.client.SendItem(soapRequest, function(err, result) {
         if (err) {
-            console.log(err);
             callback(err, null);
         }
 
@@ -469,18 +446,11 @@ exports.createDraft = function( subject, body, recipients, callback) {
 
     exports.client.CreateItem(soapRequest, function(err, result) {
         if (err) {
-            console.log(err);
             callback(err, null);
         }
 
         callback(null, result);
 
-        // console.log(err, result.ResponseMessages.CreateItemResponseMessage);
-        // if (result.ResponseMessages.CreateItemResponseMessage.ResponseCode == .'NoError') {
-        //     var emails = result.ResponseMessages.CreateItemResponseMessage.RootFolder.Items.Message;
-
-        //     callback(null,emailAddress);
-        // }
     });
 
 };
@@ -512,11 +482,8 @@ exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom 
       '</tns:CreateItem>'
       ].join(' ');
 
-      console.log(soapRequest);
-
     exports.client.CreateItem(soapRequest, function(err, result) {
         if (err) {
-            console.log(err.body);
             callback(err, null);
         }
 
