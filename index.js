@@ -1,7 +1,7 @@
-var path = require('path')
-  , moment = require('moment')
-  , crypto = require('crypto')
-  , xml2js = require('xml2js')
+var path = require('path'), 
+    moment = require('moment'),
+    crypto = require('crypto'),
+    xml2js = require('xml2js')
   ;
 
 
@@ -421,7 +421,7 @@ exports.createAttachment = function(itemId, files, callback) {
   });
 };
 
-exports.createDraft = function( subject, body, recipients, callback) {
+exports.createDraft = function( subject, body, recipients, callback) {    
     var soapRequest = [
       '<tns:CreateItem MessageDisposition="SaveOnly">',
           '<tns:Items>',
@@ -434,7 +434,7 @@ exports.createDraft = function( subject, body, recipients, callback) {
 
     for (var i=0; i < recipients.length; i++) {
       soapRequest.push('<t:Mailbox>');
-      soapRequest.push('<t:EmailAddress>' + recipients[i].email + '</t:EmailAddress>');
+      soapRequest.push('<t:EmailAddress>' + recipients[i] + '</t:EmailAddress>');
       soapRequest.push('</t:Mailbox>');
     }
           
@@ -455,8 +455,8 @@ exports.createDraft = function( subject, body, recipients, callback) {
 
 };
 
-exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom ,callback) {
-    
+exports.sendMail = function(subject, body, emailTo, emailCc, emailBcc, nameTo, emailFrom, nameFrom ,callback) {
+
     var soapRequest = [
       '<tns:CreateItem MessageDisposition="SendAndSaveCopy">',
         '<tns:Items>',
@@ -465,23 +465,40 @@ exports.sendMail = function(subject, body, emailTo, nameTo, emailFrom, nameFrom 
           '<t:ItemClass>IPM.Note</t:ItemClass>',
             '<t:Subject>' + subject + '</t:Subject>',
             '<t:Body BodyType="HTML">' + body + '</t:Body>',
-            '<t:ToRecipients>',
-              '<t:Mailbox>',
-                nameTo? '<t:Name>' + nameTo + '</t:Name>' : '',
-                '<t:EmailAddress>' + emailTo + '</t:EmailAddress>',
-              '</t:Mailbox>',
-            '</t:ToRecipients>',
-            '<t:From>',
-              '<t:Mailbox>',
-               '<t:Name>' + nameFrom + '</t:Name>',
-               '<t:EmailAddress>' + emailFrom + '</t:EmailAddress>',
-              '</t:Mailbox>',
-            '</t:From>',
-          '</t:Message>',
-        '</tns:Items>',
-      '</tns:CreateItem>'
-      ].join(' ');
-
+            '<t:ToRecipients>'
+    ];
+            for (var i=0; i < emailTo.length; i++) {
+              soapRequest.push('<t:Mailbox>');
+              soapRequest.push('<t:EmailAddress>' + emailTo[i] + '</t:EmailAddress>');
+              soapRequest.push('</t:Mailbox>');
+            }
+            soapRequest.push('</t:ToRecipients>');
+            soapRequest.push('<t:CcRecipients>');
+             for (var j=0; j < emailCc.length; j++) {
+              soapRequest.push('<t:Mailbox>');
+              soapRequest.push('<t:EmailAddress>' + emailCc[j] + '</t:EmailAddress>');
+              soapRequest.push('</t:Mailbox>');
+            }
+            soapRequest.push('</t:CcRecipients>');
+            soapRequest.push('<t:BccRecipients>');
+            for (var k=0; k < emailBcc.length; k++) {
+              soapRequest.push('<t:Mailbox>');
+              soapRequest.push('<t:EmailAddress>' + emailBcc[k] + '</t:EmailAddress>');
+              soapRequest.push('</t:Mailbox>');
+            }
+            soapRequest.push('</t:BccRecipients>');
+            soapRequest.push('<t:From>');
+            soapRequest.push(  '<t:Mailbox>');
+            soapRequest.push(   '<t:Name>' + nameFrom + '</t:Name>');
+            soapRequest.push(   '<t:EmailAddress>' + emailFrom + '</t:EmailAddress>');
+            soapRequest.push(  '</t:Mailbox>');
+            soapRequest.push('</t:From>');
+          soapRequest.push('</t:Message>');
+        soapRequest.push('</tns:Items>');
+      soapRequest.push('</tns:CreateItem>');
+      
+      soapRequest = soapRequest.join(' ');
+      
     exports.client.CreateItem(soapRequest, function(err, result) {
         if (err) {
             callback(err, null);
